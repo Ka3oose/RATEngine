@@ -17,8 +17,8 @@ clock = pygame.time.Clock()
 #ENGINE GLOBALS
 GAME_RUNNING = True
 CANVAS_D = 7
-WIDTH = 100*CANVAS_D
-HEIGHT = 75*CANVAS_D
+WIDTH = 104*CANVAS_D
+HEIGHT = 78*CANVAS_D
 SCREEN = pygame.display.set_mode((WIDTH, HEIGHT))
 NEAR_Z = -0.25 #<- smaller negative means smaller near-clipping distance
 FAR_Z = 0.01 #<- lower number means higher view distance
@@ -173,15 +173,6 @@ while GAME_RUNNING:
     #This represents the x, y, z values of the entire object which then gets transformed in reference to the camera
     positionTransform = [parentTransform[3], parentTransform[7], parentTransform[11]]
     vertran(positionTransform, CAM_TRANSF_INV)
-    
-    #Before clipping triangles, we can determine if an entire object even needs to be clipped by testing
-    #its bound against the clipping planes
-    nearPlaneTest = dot(N_PLANE, positionTransform) + NEAR_Z > object['bound']
-    leftPlaneTest = dot(L_PLANE, positionTransform) + NEAR_Z > object['bound']
-    rightPlaneTest = dot(R_PLANE, positionTransform) + NEAR_Z > object['bound']
-    topPlaneTest = dot(T_PLANE, positionTransform) + NEAR_Z > object['bound']
-    bottomPlaneTest = dot(B_PLANE, positionTransform) + NEAR_Z > object['bound']
-    objectWithinPlanes = nearPlaneTest and leftPlaneTest and rightPlaneTest and topPlaneTest and bottomPlaneTest
 
     #If the object itself is beyond its own render distance then don't bother to render it
     if magnitude(positionTransform) < object['renderDistance']:
@@ -196,19 +187,15 @@ while GAME_RUNNING:
         if triangleFacingCamera(tCopy):
           #If the triangle is not culled then calculate its distance to the camera and save it for sorting
           tCopy['magnitude'] = magnitude(center(tCopy))
-          #If the entire object was within each plane then just add this triangle
-          if objectWithinPlanes:
-            SCENE_TRIANGLES.append(tCopy)
-          else:
-            #If not then clip the triangle against each plane and return the new triangles
-            trianglesToClip = [tCopy]
-            clipTriangles(trianglesToClip, N_PLANE, NEAR_Z)
-            clipTriangles(trianglesToClip, L_PLANE, NEAR_Z)
-            clipTriangles(trianglesToClip, R_PLANE, NEAR_Z)
-            clipTriangles(trianglesToClip, T_PLANE, NEAR_Z)
-            clipTriangles(trianglesToClip, B_PLANE, NEAR_Z)
-            for fragment in trianglesToClip:
-              SCENE_TRIANGLES.append(fragment)
+          #Clip the triangle against each plane
+          trianglesToClip = [tCopy]
+          clipTriangles(trianglesToClip, N_PLANE, NEAR_Z)
+          clipTriangles(trianglesToClip, L_PLANE, NEAR_Z)
+          clipTriangles(trianglesToClip, R_PLANE, NEAR_Z)
+          clipTriangles(trianglesToClip, T_PLANE, NEAR_Z)
+          clipTriangles(trianglesToClip, B_PLANE, NEAR_Z)
+          for fragment in trianglesToClip:
+            SCENE_TRIANGLES.append(fragment)
   #Sort the triangles first by translucency and then by distance
   #This makes all translucent triangles render last which renders them correctly but hurts performance
   SCENE_TRIANGLES.sort(key=lambda t: (t['object']['translucent'], t['magnitude']))
