@@ -115,9 +115,9 @@ def Cylinder(x, y, z, pi, ya, ro, sx, sy, sz, texture, tsx, tsy, rdist, sh, tran
   triangles = []
   for i in range(div):
     triangles.append(createTriangle(
-        cos(i * DIV), -1.0, sin(i * DIV), 0.0,0.0, cos(i * DIV), -1.0, sin(i * DIV),
+        cos(i * DIV), -1.0, sin(i * DIV), 0.0,0.0, 0.0, -1.0, 0.0,
         0.0,-1.0, 0.0, 0.0,0.0, 0.0, -1.0, 0.0,
-        cos((i+1) * DIV),-1.0, sin((i+1) * DIV), 0.0,0.0,cos((i+1) * DIV), -1.0, sin((i+1) * DIV)
+        cos((i+1) * DIV),-1.0, sin((i+1) * DIV), 0.0,0.0,0.0, -1.0, 0.0
       ))
     triangles.append(createTriangle(
         cos(i * DIV),-1.0, sin(i * DIV), i/div,1.0, cos(i * DIV), 0.0, sin(i * DIV),
@@ -130,8 +130,8 @@ def Cylinder(x, y, z, pi, ya, ro, sx, sy, sz, texture, tsx, tsy, rdist, sh, tran
         cos((i+1) * DIV),-1.0, sin((i+1) * DIV), (i+1)/div,1.0,cos((i+1) * DIV), 0.0, sin((i+1) * DIV)
       ))
     triangles.append(createTriangle(
-        cos(i * DIV), 1.0, sin(i * DIV), 0.0,0.0, cos(i * DIV),  1.0, sin(i * DIV),
-        cos((i+1) * DIV), 1.0, sin((i+1) * DIV), 0.0,0.0,cos((i+1) * DIV),  1.0, sin((i+1) * DIV),
+        cos(i * DIV), 1.0, sin(i * DIV), 0.0,0.0, 0.0,  1.0, 0.0,
+        cos((i+1) * DIV), 1.0, sin((i+1) * DIV), 0.0,0.0,0.0,  1.0, 0.0,
         0.0, 1.0, 0.0, 0.0,0.0, 0.0,  1.0, 0.0
       ))
   return Model(triangles, x, y, z, pi, ya, ro, sx, sy, sz, texture, tsx, tsy, rdist, sh, trans)
@@ -184,9 +184,9 @@ def Cone(x, y, z, pi, ya, ro, sx, sy, sz, texture, tsx, tsy, rdist, sh, trans, d
   triangles = []
   for i in range(div):
     triangles.append(createTriangle(
-        cos(i * DIV), -1.0, sin(i * DIV), 0.0,0.0, -1.0, 0.0, 1.0,
-        0.0, -1.0, 0.0, 0.0,0.0, -1.0, 0.0, 1.0,
-        cos((i+1) * DIV), -1.0, sin((i+1) * DIV), 0.0,0.0,-1.0,0.0,1.0
+        cos(i * DIV), -1.0, sin(i * DIV), 0.0,0.0, 0.0,-1.0, 0.0,
+        0.0, -1.0, 0.0, 0.0,0.0, 0.0,-1.0, 0.0,
+        cos((i+1) * DIV), -1.0, sin((i+1) * DIV), 0.0,0.0,0.0,-1.0,0.0
       ))
     triangles.append(createTriangle(
         cos(i * DIV), -1.0, sin(i * DIV), i/div,1.0, cos(i * DIV), 0.0, sin(i * DIV),

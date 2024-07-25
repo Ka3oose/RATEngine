@@ -1,7 +1,6 @@
 import pygame
 from RATriangles import *
-from RAThematics import interpolate, vertran, vecsub, magnitude, normalize
-from math import ceil
+from RAThematics import vertran, vecsub, magnitude, normalize
 
 #Debugging render method which renders lines between triangle vertices
 def wireframe(v0, v1, v2, CANVAS_D, SCREEN):
@@ -80,24 +79,25 @@ def renderTriangleTextured(
             normal = [x_vertex[5], x_vertex[6], x_vertex[7]]
             h = 0.0
             for light in SCENE_LIGHTS:
+                normalMagnitude = magnitude(normal)
                 if light['type'] == 0:
                     h += light['brightness'] 
                 elif light['type'] == 1:
                     nDot = dot(normal, light['normal'])
                     if nDot > 0.0:
-                        h += (nDot * light['brightness']) / (magnitude(normal) * magnitude(light['normal']))
+                        h += (nDot * light['brightness']) / (normalMagnitude * magnitude(light['normal']))
                 elif light['type'] > 1:
                     lightToA = light['position'].copy()
                     vecsub(lightToA, pixelPosition)
                     nDot = dot(normal, lightToA)
                     if nDot > 0.0:
                         if light['type'] == 2:
-                            h += (nDot * light['brightness']) / (magnitude(normal) * dot(lightToA, lightToA))
+                            h += (nDot * light['brightness']) / (normalMagnitude* dot(lightToA, lightToA))
                         elif light['type'] == 3:
                             lightToANormalized = lightToA.copy()
                             normalize(lightToANormalized)
                             aDot = dot(light['normal'], lightToANormalized)
-                            h += (nDot * pow(aDot,light['exponent']) * light['brightness']) / (magnitude(normal) * dot(lightToA, lightToA))  
+                            h += (nDot * pow(aDot,light['exponent']) * light['brightness']) / (normalMagnitude * dot(lightToA, lightToA))  
 
           SHADED_COLOR = COLOR_BLACK.lerp(texel, min(h, 1.0))
           FOG_COLOR = SKY_COLOR.lerp(SHADED_COLOR, min((z - FAR_Z)*FOG_DEPTH, 1.0))
