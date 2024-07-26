@@ -142,9 +142,7 @@ def interpolate(p0, p1, t):
   return (1 - t) * p0 + t * p1
 #Return the difference of two vectors
 def vecsub(a, b):
-  a[0] -= b[0]
-  a[1] -= b[1]
-  a[2] -= b[2]
+  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
 #Transform vertex in place
 def vertran(a, b):
   ta0 = a[0]

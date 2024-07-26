@@ -2,13 +2,12 @@
 
 from math import sin, cos, radians
 import pygame
-from RATRender import *
 from RAThematics import *
 from RATriangles import *
 from RATEntities import *
 
 pygame.init()
-pygame.display.set_caption("RATEngine V0.6b12024")
+pygame.display.set_caption("RATEngine V0.6b22024")
 pygame.font.init()
 FONT = pygame.font.SysFont('Calibri', 18)
 pygame.mouse.set_visible(False)
@@ -117,7 +116,7 @@ SCENE_OBJECTS = [
 
 SCENE_LIGHTS = [
   SpotLight(0.0,0.0,0.0,0.0,0.0,-1.0,30.0,10.0,30.0),
-  #PointLight(0.0,10.0,40.0,10.0),
+  PointLight(0.0,10.0,40.0,10.0),
 ]
 
 ##################
@@ -132,6 +131,12 @@ while GAME_RUNNING:
       KEYS[event.scancode] = True
     if event.type == pygame.KEYUP:
       KEYS[event.scancode] = False
+    if event.type == pygame.MOUSEBUTTONDOWN:
+      if event.button == 1:
+        if SCENE_LIGHTS[0]['brightness'] == 0.0:
+          SCENE_LIGHTS[0]['brightness'] = 30.0
+        else:
+          SCENE_LIGHTS[0]['brightness'] = 0.0
   
   #User input section
   if KEYS[26]:
@@ -159,116 +164,45 @@ while GAME_RUNNING:
   setPositionToObject(SCENE_LIGHTS[0], CAMERA)
   setNormalToDirection(SCENE_LIGHTS[0], CAMERA, 'f')
 
-  #Loop through all objects in the SCENE_OBJECTS list and perform the following steps:
-  for object in SCENE_OBJECTS:
-    #For all objects with parents we need to determine to complete transform which includes not only the child, but all of its parents
-    parentRotation = object['rotation']
-    parentTransform = object['transform']
-    currentObject = object
-    while currentObject['parent'] is not None:
-      parentRotation = matmul(parentRotation, currentObject['parent']['rotation'])
-      parentTransform = matmul3(parentTransform, currentObject['parent']['rotation'], currentObject['parent']['translation'])
-      currentObject = currentObject['parent'] 
-    
-    #This represents the x, y, z values of the entire object which then gets transformed in reference to the camera
-    objectToCamX = parentTransform[3] - CAMERA['transform'][3]
-    objectToCamY = parentTransform[7] - CAMERA['transform'][7]
-    objectToCamZ = parentTransform[11] - CAMERA['transform'][11]
-    objectToCamMagnitude = sqrt(objectToCamX*objectToCamX + objectToCamY*objectToCamY + objectToCamZ*objectToCamZ)
+  #Loop through all objects in the SCENE_OBJECTS list and performs transformations, backface culling, and camera space clipping
+  processTriangles(
+    SCENE_OBJECTS, 
+    SCENE_TRIANGLES, 
+    CAMERA, 
+    CAM_TRANSF_INV, 
+    N_PLANE, 
+    L_PLANE, 
+    R_PLANE, 
+    T_PLANE, 
+    B_PLANE, 
+    NEAR_Z
+  )
 
-    #If the object itself is beyond its own render distance then don't bother to render it
-    if objectToCamMagnitude < object['renderDistance']:
-      #But it isn't then iterate through each of its triangles and process then accordingly:
-      for triangle in object['triangles']:
-        #Create a copy of each triangle and transform it by worldspace and then cameraspace (also transform normals by rotation)
-        triCopy = triangle.copy()
-        totalTransform = matmul(parentTransform, CAM_TRANSF_INV)
-        #Transform the triangle's vertex positions by the total transform (all parent transforms, self, and camera)
-        #Transform the triangle's vertex normals by all parent transforms (used for lighting so must remain world space)
-        tax, tay, taz = triCopy['ax'], triCopy['ay'], triCopy['az']
-        tbx, tby, tbz = triCopy['bx'], triCopy['by'], triCopy['bz']
-        tcx, tcy, tcz = triCopy['cx'], triCopy['cy'], triCopy['cz']
-        tap, taq, tar = triCopy['ap'], triCopy['aq'], triCopy['ar']
-        tbp, tbq, tbr = triCopy['bp'], triCopy['bq'], triCopy['br']
-        tcp, tcq, tcr = triCopy['cp'], triCopy['cq'], triCopy['cr']
-        triCopy['ax'] = tax*totalTransform[0]+tay*totalTransform[1]+taz*totalTransform[ 2]+totalTransform[ 3]
-        triCopy['ay'] = tax*totalTransform[4]+tay*totalTransform[5]+taz*totalTransform[ 6]+totalTransform[ 7]
-        triCopy['az'] = tax*totalTransform[8]+tay*totalTransform[9]+taz*totalTransform[10]+totalTransform[11]
-        triCopy['bx'] = tbx*totalTransform[0]+tby*totalTransform[1]+tbz*totalTransform[ 2]+totalTransform[ 3]
-        triCopy['by'] = tbx*totalTransform[4]+tby*totalTransform[5]+tbz*totalTransform[ 6]+totalTransform[ 7]
-        triCopy['bz'] = tbx*totalTransform[8]+tby*totalTransform[9]+tbz*totalTransform[10]+totalTransform[11]
-        triCopy['cx'] = tcx*totalTransform[0]+tcy*totalTransform[1]+tcz*totalTransform[ 2]+totalTransform[ 3]
-        triCopy['cy'] = tcx*totalTransform[4]+tcy*totalTransform[5]+tcz*totalTransform[ 6]+totalTransform[ 7]
-        triCopy['cz'] = tcx*totalTransform[8]+tcy*totalTransform[9]+tcz*totalTransform[10]+totalTransform[11]
-        triCopy['ap'] = tap*parentRotation[0]+taq*parentRotation[1]+tar*parentRotation[ 2]+parentRotation[ 3]
-        triCopy['aq'] = tap*parentRotation[4]+taq*parentRotation[5]+tar*parentRotation[ 6]+parentRotation[ 7]
-        triCopy['ar'] = tap*parentRotation[8]+taq*parentRotation[9]+tar*parentRotation[10]+parentRotation[11]
-        triCopy['bp'] = tbp*parentRotation[0]+tbq*parentRotation[1]+tbr*parentRotation[ 2]+parentRotation[ 3]
-        triCopy['bq'] = tbp*parentRotation[4]+tbq*parentRotation[5]+tbr*parentRotation[ 6]+parentRotation[ 7]
-        triCopy['br'] = tbp*parentRotation[8]+tbq*parentRotation[9]+tbr*parentRotation[10]+parentRotation[11]
-        triCopy['cp'] = tcp*parentRotation[0]+tcq*parentRotation[1]+tcr*parentRotation[ 2]+parentRotation[ 3]
-        triCopy['cq'] = tcp*parentRotation[4]+tcq*parentRotation[5]+tcr*parentRotation[ 6]+parentRotation[ 7]
-        triCopy['cr'] = tcp*parentRotation[8]+tcq*parentRotation[9]+tcr*parentRotation[10]+parentRotation[11]
-        #Test if the triangle is facing the camera or else cull it 
-        #(the cull test method requires that the triangle is already transformed by the cameraspace)
-        #This method is an alternative form of dot(cross(b-a, c-a), a) which finds the cross product of two
-        #vectors of the triangle's edges and compares its angle to the angle of the camera to one of the edges
-        b_a_x = triCopy['bx'] - triCopy['ax']
-        b_a_y = triCopy['by'] - triCopy['ay']
-        b_a_z = triCopy['bz'] - triCopy['az']
-        c_a_x = triCopy['cx'] - triCopy['ax']
-        c_a_y = triCopy['cy'] - triCopy['ay']
-        c_a_z = triCopy['cz'] - triCopy['az']
-        c00 = triCopy['ax'] * b_a_y * c_a_z
-        c01 = triCopy['ax'] * c_a_y * b_a_z
-        c02 = c_a_x * triCopy['ay'] * b_a_z
-        c03 = b_a_x * triCopy['ay'] * c_a_z
-        c04 = b_a_x * c_a_y * triCopy['az']
-        c05 = c_a_x * b_a_y * triCopy['az']
-        if (c00 - c01 + c02 - c03 + c04 - c05) > 0.0:
-          #If the triangle is not culled then calculate its distance to the camera and save it for sorting
-          #Distances are determined from the center of the triangle which is an average of all of its x, y, and z positions
-          centerX = (triCopy['ax'] + triCopy['bx'] + triCopy['cx']) / 3.0
-          centerY = (triCopy['ay'] + triCopy['by'] + triCopy['cy']) / 3.0
-          centerZ = (triCopy['az'] + triCopy['bz'] + triCopy['cz']) / 3.0
-          triCopy['magnitude'] = sqrt(centerX*centerX + centerY*centerY + centerZ*centerZ)
-          #Clip the triangle against each plane
-          trianglesToClip = [triCopy]
-          clipTriangles(trianglesToClip, N_PLANE, NEAR_Z)
-          clipTriangles(trianglesToClip, L_PLANE, NEAR_Z)
-          clipTriangles(trianglesToClip, R_PLANE, NEAR_Z)
-          clipTriangles(trianglesToClip, T_PLANE, NEAR_Z)
-          clipTriangles(trianglesToClip, B_PLANE, NEAR_Z)
-          for fragment in trianglesToClip:
-            SCENE_TRIANGLES.append(fragment)
   #Sort the triangles first by translucency and then by distance
-  #This makes all translucent triangles render last which renders them correctly but hurts performance
+  #This makes all translucent triangles render last which renders their alphas correctly but hurts performance
   SCENE_TRIANGLES.sort(key=lambda t: (t['object']['translucent'], t['magnitude']))
+  
+  #Transform each triangle by screen space then render with textures and lighting
+  renderTriangles(
+    SCENE_TRIANGLES, 
+    CANVAS_W, 
+    CANVAS_WH, 
+    CANVAS_H, 
+    CANVAS_HH, 
+    PER_W_MUL, 
+    PER_H_MUL, 
+    CANVAS_D, 
+    DEPTH_BUFFER, 
+    COLOR_BUFFER, 
+    COLOR_BLACK, 
+    SKY_COLOR, 
+    FOG_DEPTH, 
+    FAR_Z, 
+    SCENE_LIGHTS, 
+    CAMERA['transform'], 
+    SCREEN
+  )
 
-  for triangle in SCENE_TRIANGLES:
-    #Transform the triangle vertex position values to screen space using special inputs that determine FOV and offsetting
-    triangle['az'] = 1/triangle['az']
-    triangle['bz'] = 1/triangle['bz']
-    triangle['cz'] = 1/triangle['cz']
-    triangle['ax'] = CANVAS_WH + (triangle['ax'] * triangle['az']) * PER_W_MUL
-    triangle['ay'] = CANVAS_HH - (triangle['ay'] * triangle['az']) * PER_H_MUL
-    triangle['au'] *= triangle['az']
-    triangle['av'] *= triangle['az']
-    triangle['bx'] = CANVAS_WH + (triangle['bx'] * triangle['bz']) * PER_W_MUL
-    triangle['by'] = CANVAS_HH - (triangle['by'] * triangle['bz']) * PER_H_MUL
-    triangle['bu'] *= triangle['bz']
-    triangle['bv'] *= triangle['bz']
-    triangle['cx'] = CANVAS_WH + (triangle['cx'] * triangle['cz']) * PER_W_MUL
-    triangle['cy'] = CANVAS_HH - (triangle['cy'] * triangle['cz']) * PER_H_MUL
-    triangle['cu'] *= triangle['cz']
-    triangle['cv'] *= triangle['cz']
-    
-    renderTriangleTextured(
-      triangle, CANVAS_W, CANVAS_WH, PER_W_MUL, CANVAS_H, CANVAS_HH, PER_H_MUL, CANVAS_D, DEPTH_BUFFER, 
-      COLOR_BUFFER, COLOR_BLACK, SKY_COLOR, FOG_DEPTH, FAR_Z, SCENE_LIGHTS, CAMERA['transform'], SCREEN
-    )
-    #wireframe(getTriangleA(triangle), getTriangleB(triangle), gettriCopy(triangle), CANVAS_D, SCREEN)
-    
   FPS_TEXT = FONT.render(str(clock.get_fps()), False, (255, 255, 255))
   SCREEN.blit(FPS_TEXT, (0,0))
 
